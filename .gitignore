@@ -20,3 +20,6 @@ ocr-testing/parking-sign-dataset/
 
 # Roboflow exported datasets
 ocr-testing/NYC Parking Sign Detector*/
+
+# Local testing/prototype files
+ocr-testing/
