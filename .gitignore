@@ -1,0 +1,22 @@
+# Python virtual environments
+.venv/
+.venv-paddle/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# API keys
+.env
+
+# YOLO generated training/prediction results
+runs/
+
+# YOLO model weights
+*.pt
+
+# Local/raw dataset images
+ocr-testing/parking-sign-dataset/
+
+# Roboflow exported datasets
+ocr-testing/NYC Parking Sign Detector*/
