@@ -14,6 +14,7 @@ runs/
 
 # YOLO model weights
 *.pt
+!ocr-testing/parking_sign_v6_best.pt
 
 # Local/raw dataset images
 ocr-testing/parking-sign-dataset/
@@ -21,5 +22,10 @@ ocr-testing/parking-sign-dataset/
 # Roboflow exported datasets
 ocr-testing/NYC Parking Sign Detector*/
 
-# Local testing/prototype files
-ocr-testing/
+# Ignore virtual environments
+ocr-testing/.venv/
+ocr-testing/.venv-paddle/
+
+# Ignore datasets and testing images
+ocr-testing/images/
+ocr-testing/new-testing-images/
