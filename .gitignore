@@ -25,6 +25,7 @@ ocr-testing/NYC Parking Sign Detector*/
 # Ignore virtual environments
 ocr-testing/.venv/
 ocr-testing/.venv-paddle/
+ocr-testing/.venv311/
 
 # Ignore datasets and testing images
 ocr-testing/images/
