@@ -3,13 +3,13 @@ from ultralytics import YOLO
 from paddleocr import PaddleOCR
 
 # Load our trained YOLO model
-model = YOLO("ocr-testing/parking_sign_v6_best.pt")
+model = YOLO("parking_sign_v6_best.pt")
 
 # Initialize PaddleOCR
 ocr = PaddleOCR(lang="en", enable_mkldnn=False)
 
 # Image to test
-image_path = "ocr-testing/new-testing-images/nyc_sign_test_2.jpg"
+image_path = "new-testing-images/nyc_sign_test_4.jpeg"
 
 # Detect parking signs using YOLO
 results = model(image_path, conf=0.25)

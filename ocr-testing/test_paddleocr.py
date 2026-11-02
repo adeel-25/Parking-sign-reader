@@ -4,7 +4,7 @@ from paddleocr import PaddleOCR
 ocr = PaddleOCR(lang="en", enable_mkldnn=False)
 
 # Image to test
-image_path = "ocr-testing/new-testing-images/nyc_sign_test_1.jpg"
+image_path = "new-testing-images/nyc_sign_test_1.jpeg"
 
 # Extract text from the parking sign
 results = ocr.predict(image_path)
