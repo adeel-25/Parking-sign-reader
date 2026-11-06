@@ -1,375 +1,445 @@
+
 import { useState } from 'react';
-import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ParkingScanner from '@/components/parking-scanner';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
+
+const COLORS = {
+  background: '#07182B',
+  card: '#102C46',
+  cardLight: '#153A58',
+  cyan: '#40D8FF',
+  white: '#FFFFFF',
+  muted: '#AFC2D6',
+};
 
 export default function HomeScreen() {
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [signType, setSignType] = useState<'parking' | 'campus' | null>(null);
-  const [photoSource, setPhotoSource] = useState<'camera' | 'library' | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showParkingScanner, setShowParkingScanner] = useState(false);
 
-  const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (!permission.granted) {
-      alert('Camera permission is required.');
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setSelectedImages((prevImages) => [
-        ...prevImages,
-        result.assets[0].uri,
-      ]);
-      setPhotoSource('camera');
-    }
-  };
-
-  const uploadPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setSelectedImages((prevImages) => [
-        ...prevImages,
-        result.assets[0].uri,
-      ]);
-      setPhotoSource('library');
-    }
-  };
-
-  const removePhoto = (indexToRemove: number) => {
-    setSelectedImages((prevImages) =>
-      prevImages.filter((_, index) => index !== indexToRemove)
+  function comingSoon(feature: string) {
+    Alert.alert(
+      feature,
+      'We will implement this feature next.'
     );
-  };
+  }
+
+  if (showParkingScanner) {
+    return (
+      <ParkingScanner
+        onBack={() => setShowParkingScanner(false)}
+      />
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-        {!signType ? (
-          <>
-            <Text style={styles.title}>
-              Parking & Campus Sign Reader
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.welcomeText}>
+                WELCOME TO
+              </Text>
+
+              <Text style={styles.appName}>
+                Park
+                <Text style={styles.cyanText}>
+                  Scan
+                </Text>
+              </Text>
+
+              <Text style={styles.tagline}>
+                Your AI-powered scanning assistant
+              </Text>
+            </View>
+
+            <View style={styles.headerIcon}>
+              <Text style={styles.headerIconText}>
+                Γîù
+              </Text>
+            </View>
+          </View>
+
+          {/* Introduction */}
+          <View style={styles.introCard}>
+            <Text style={styles.sectionLabel}>
+              SMART SCANNING
             </Text>
 
-            <Text style={styles.subtitle}>
-              Select the type of sign you want to scan.
+            <Text style={styles.introTitle}>
+              What would you like to scan?
             </Text>
 
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => setSignType('parking')}
-            >
-              <Text style={styles.primaryButtonText}>🅿️ Parking Sign</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => setSignType('campus')}
-            >
-              <Text style={styles.primaryButtonText}>🏫 Campus Sign</Text>
-            </TouchableOpacity>
-
-          </>
-        ) : selectedImages.length === 0 ? (
-          <>
-
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                setSignType(null);
-                setSelectedImages([]);
-              }}
-            >
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.title}>
-              {signType === 'parking' ? 'Parking Sign' : 'Campus Sign'}
+            <Text style={styles.introDescription}>
+              Choose a feature to get started.
             </Text>
+          </View>
 
-            <Text style={styles.subtitle}>
-              Take or upload a photo of a sign to get a simple explanation.
-            </Text>
-
-            {selectedImages.map((imageUri, index) => (
-              <Image
-                key={index}
-                source={{ uri: imageUri }}
-                style={{ width: 250, height: 250, alignSelf: 'center', marginBottom: 10 }}
-                resizeMode="contain"
-              />
-            ))}
-
-            {selectedImages.length > 0 && (
-              <TouchableOpacity style={styles.primaryButton}>
-                <Text style={styles.primaryButtonText}>Analyze Sign</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity style={styles.primaryButton} onPress={takePhoto}>
-              <Text style={styles.primaryButtonText}>Take Photo</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.secondaryButton} onPress={uploadPhoto}>
-              <Text style={styles.secondaryButtonText}>Upload Photo</Text>
-            </TouchableOpacity>
-
-          </>
-        ) : (
-          <>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => {
-                Alert.alert(
-                  'Discard selected photos?',
-                  'Your selected photos will be removed.',
-                  [
-                    {
-                      text: 'Cancel',
-                      style: 'cancel',
-                    },
-                    {
-                      text: 'Discard',
-                      style: 'destructive',
-                      onPress: () => setSelectedImages([]),
-                    },
-                  ]
-                );
-              }}
+          {/* Main Scanning Features */}
+          <View style={styles.scanRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.scanCard,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => setShowParkingScanner(true)}
             >
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
-
-            <ScrollView
-              style={{ width: '100%' }}
-              contentContainerStyle={{
-                paddingTop: 120,
-                paddingBottom: 140,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.title}>Image Review</Text>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 10,
-                  marginTop: 20,
-                  marginBottom: 20,
-                }}
-              >
-                {selectedImages.map((imageUri, index) => (
-                  <View
-                    key={index}
-                    style={{
-                      position: 'relative',
-                      width: selectedImages.length === 1 ? 250 : 100,
-                      height: selectedImages.length === 1 ? 180 : 120,
-                    }}
-                  >
-                    <TouchableOpacity
-                      style={{ width: '100%', height: '100%' }}
-                      onPress={() => setPreviewImage(imageUri)}
-                    >
-                      <Image
-                        source={{ uri: imageUri }}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                        }}
-                        resizeMode="contain"
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => removePhoto(index)}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        right: 0,
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: 'black',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: 'white',
-                          fontSize: 16,
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        ×
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+              <View style={styles.scanIconContainer}>
+                <Text style={styles.scanIcon}>
+                  ≡ƒÜù
+                </Text>
               </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.secondaryButton,
-                  { marginBottom: 15 },
-                  selectedImages.length >= 3 && { opacity: 0.4 },
-                ]}
-                onPress={() => {
-                  if (photoSource === 'camera') {
-                    takePhoto();
-                  } else {
-                    uploadPhoto();
-                  }
-                }}
-                disabled={selectedImages.length >= 3}
-              >
-                <Text style={styles.secondaryButtonText}>+ Add Another Photo</Text>
-              </TouchableOpacity>
+              <Text style={styles.scanTitle}>
+                Parking Signs
+              </Text>
 
-              <TouchableOpacity style={styles.primaryButton}>
-                <Text style={styles.primaryButtonText}>Analyze Sign</Text>
-              </TouchableOpacity>
+              <Text style={styles.scanDescription}>
+                Scan signs and understand parking rules.
+              </Text>
 
-            </ScrollView>
-            <Modal
-              visible={previewImage !== null}
-              transparent={true}
-              animationType="fade"
-              onRequestClose={() => setPreviewImage(null)}
+              <Text style={styles.scanArrow}>
+                ΓåÆ
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.scanCard,
+                pressed && styles.pressed,
+              ]}
+              onPress={() =>
+                comingSoon('Scan Campus Room')
+              }
             >
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: 'rgba(0, 0, 0, 0.95)',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                {previewImage && (
-                  <Image
-                    source={{ uri: previewImage }}
-                    style={{
-                      width: '95%',
-                      height: '80%',
-                    }}
-                    resizeMode="contain"
-                  />
-                )}
-
-                <TouchableOpacity
-                  onPress={() => setPreviewImage(null)}
-                  style={{
-                    position: 'absolute',
-                    top: 60,
-                    right: 25,
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: 'white',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: 'black',
-                      fontSize: 24,
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    ×
-                  </Text>
-                </TouchableOpacity>
+              <View style={styles.scanIconContainer}>
+                <Text style={styles.scanIcon}>
+                  ≡ƒÅ½
+                </Text>
               </View>
-            </Modal>
-          </>
-        )}
 
-      </View>
-    </SafeAreaView >
+              <Text style={styles.scanTitle}>
+                Campus Rooms
+              </Text>
+
+              <Text style={styles.scanDescription}>
+                Find campus room information.
+              </Text>
+
+              <Text style={styles.scanArrow}>
+                ΓåÆ
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Quick Access */}
+          <Text style={styles.quickAccessHeading}>
+            Quick Access
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickCard,
+              pressed && styles.pressed,
+            ]}
+            onPress={() =>
+              comingSoon('Scan History')
+            }
+          >
+            <View style={styles.quickIcon}>
+              <Text style={styles.quickEmoji}>
+                ≡ƒòÿ
+              </Text>
+            </View>
+
+            <View style={styles.quickTextContainer}>
+              <Text style={styles.quickTitle}>
+                Scan History
+              </Text>
+              <Text style={styles.quickDescription}>
+                View your previous scans
+              </Text>
+            </View>
+
+            <Text style={styles.quickArrow}>
+              ΓÇ║
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickCard,
+              pressed && styles.pressed,
+            ]}
+            onPress={() =>
+              comingSoon('Settings')
+            }
+          >
+            <View style={styles.quickIcon}>
+              <Text style={styles.quickEmoji}>
+                ΓÜÖ∩╕Å
+              </Text>
+            </View>
+
+            <View style={styles.quickTextContainer}>
+              <Text style={styles.quickTitle}>
+                Settings
+              </Text>
+              <Text style={styles.quickDescription}>
+                Language and accessibility preferences
+              </Text>
+            </View>
+
+            <Text style={styles.quickArrow}>
+              ΓÇ║
+            </Text>
+          </Pressable>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              ParkScan
+            </Text>
+            <Text style={styles.footerSubtext}>
+              Making parking and campus navigation easier
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-
-  backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    zIndex: 1,
-  },
-
-  backButtonText: {
-    fontSize: 17,
-    fontWeight: '500',
-    color: '#222222',
-  },
-
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.background,
   },
 
-  content: {
+  safeArea: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 30,
   },
 
-  title: {
-    fontSize: 32,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 110,
+  },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+
+  welcomeText: {
+    color: COLORS.cyan,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+  },
+
+  appName: {
+    color: COLORS.white,
+    fontSize: 38,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 15,
+    marginTop: 4,
   },
 
-  subtitle: {
+  cyanText: {
+    color: COLORS.cyan,
+  },
+
+  tagline: {
+    color: COLORS.muted,
+    fontSize: 13,
+    marginTop: 4,
+  },
+
+  headerIcon: {
+    width: 55,
+    height: 55,
+    borderRadius: 18,
+    backgroundColor: COLORS.cardLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#286087',
+  },
+
+  headerIconText: {
+    fontSize: 34,
+    color: COLORS.cyan,
+  },
+
+  introCard: {
+    backgroundColor: COLORS.card,
+    padding: 22,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#204662',
+    marginBottom: 20,
+  },
+
+  sectionLabel: {
+    color: COLORS.cyan,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 12,
+  },
+
+  introTitle: {
+    color: COLORS.white,
+    fontSize: 23,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+
+  introDescription: {
+    color: COLORS.muted,
+    fontSize: 14,
+  },
+
+  scanRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 30,
+  },
+
+  scanCard: {
+    flex: 1,
+    minHeight: 215,
+    backgroundColor: COLORS.cardLight,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#286087',
+  },
+
+  pressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.98 }],
+  },
+
+  scanIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 15,
+    backgroundColor: '#0C2B43',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+
+  scanIcon: {
+    fontSize: 29,
+  },
+
+  scanTitle: {
+    color: COLORS.white,
     fontSize: 17,
-    textAlign: 'center',
-    color: '#666666',
-    marginBottom: 40,
-    lineHeight: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
 
-  primaryButton: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 15,
+  scanDescription: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 18,
   },
 
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
+  scanArrow: {
+    color: COLORS.cyan,
+    fontSize: 25,
+    marginTop: 10,
+    textAlign: 'right',
+  },
+
+  quickAccessHeading: {
+    color: COLORS.white,
+    fontSize: 21,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+
+  quickCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 17,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#204662',
+  },
+
+  quickIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: COLORS.cardLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+
+  quickEmoji: {
+    fontSize: 23,
+  },
+
+  quickTextContainer: {
+    flex: 1,
+  },
+
+  quickTitle: {
+    color: COLORS.white,
+    fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
+    marginBottom: 4,
   },
 
-  secondaryButton: {
-    borderWidth: 2,
-    borderColor: '#2563EB',
-    paddingVertical: 16,
-    borderRadius: 12,
+  quickDescription: {
+    color: COLORS.muted,
+    fontSize: 12,
   },
 
-  secondaryButtonText: {
-    color: '#2563EB',
-    fontSize: 18,
-    fontWeight: '600',
+  quickArrow: {
+    color: COLORS.cyan,
+    fontSize: 28,
+    marginLeft: 10,
+  },
+
+  footer: {
+    alignItems: 'center',
+    marginTop: 35,
+  },
+
+  footerText: {
+    color: COLORS.cyan,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  footerSubtext: {
+    color: COLORS.muted,
+    fontSize: 11,
+    marginTop: 6,
     textAlign: 'center',
   },
 });
