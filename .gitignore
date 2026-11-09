@@ -30,3 +30,26 @@ ocr-testing/.venv311/
 # Ignore datasets and testing images
 ocr-testing/images/
 ocr-testing/new-testing-images/
+# Environment files and API secrets
+.env.*
+!.env.example
+
+# Node.js dependencies
+node_modules/
+.expo/
+dist/
+
+# Python environments and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Temporary files and archives
+frontend.zip
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
