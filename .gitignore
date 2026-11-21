@@ -14,6 +14,7 @@ runs/
 
 # YOLO model weights
 *.pt
+!ocr-testing/parking_sign_v6_best.pt
 
 # Local/raw dataset images
 ocr-testing/parking-sign-dataset/
@@ -21,5 +22,34 @@ ocr-testing/parking-sign-dataset/
 # Roboflow exported datasets
 ocr-testing/NYC Parking Sign Detector*/
 
-# Local testing/prototype files
-ocr-testing/
+# Ignore virtual environments
+ocr-testing/.venv/
+ocr-testing/.venv-paddle/
+ocr-testing/.venv311/
+
+# Ignore datasets and testing images
+ocr-testing/images/
+ocr-testing/new-testing-images/
+# Environment files and API secrets
+.env.*
+!.env.example
+
+# Node.js dependencies
+node_modules/
+.expo/
+dist/
+
+# Python environments and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Temporary files and archives
+frontend.zip
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
