@@ -1,5 +1,7 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { saveScan } from '@/storage/scan-history';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
@@ -17,11 +19,14 @@ import { File as ExpoFile } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { fetch as expoFetch } from 'expo/fetch';
+import Markdown from 'react-native-markdown-display';
+import { translations, type LanguageCode } from '@/i18n/translations';
 
-const API_URL = 'http://172.20.10.2:8000/analyze';
+const API_BASE_URL = 'http://192.168.1.202:8000';
 
 type ParkingScannerProps = {
   onBack: () => void;
+  mode?: 'parking' | 'campus';
 };
 
 type AnalysisResult = {
@@ -35,12 +40,28 @@ type AnalysisResult = {
 
 export default function ParkingScanner({
   onBack,
+  mode = 'parking',
 }: ParkingScannerProps) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState<LanguageCode>('en');
+  const t = translations[language];
+
+  useEffect(() => {
+    async function loadLanguage() {
+      try {
+        const saved = await AsyncStorage.getItem('@parkscan/preferred-language');
+        setLanguage(saved === 'es' ? 'es' : 'en');
+      } catch (err) {
+        console.error('Unable to load language preference:', err);
+      }
+    }
+
+    loadLanguage();
+  }, []);
 
   async function selectPhoto(uri: string) {
     try {
@@ -65,8 +86,8 @@ export default function ParkingScanner({
       console.log('Image conversion error:', err);
 
       Alert.alert(
-        'Image Error',
-        'Unable to convert the selected photo to JPEG.'
+        t.imageError,
+        t.imageConvertError
       );
     }
   }
@@ -78,8 +99,8 @@ export default function ParkingScanner({
 
       if (!permission.granted) {
         Alert.alert(
-          'Camera Permission',
-          'Please allow camera access to take a photo.'
+          t.cameraPermission,
+          t.cameraPermissionMessage
         );
         return;
       }
@@ -96,8 +117,8 @@ export default function ParkingScanner({
       console.log('Camera error:', err);
 
       Alert.alert(
-        'Camera Error',
-        'Unable to open the camera.'
+        t.cameraError,
+        t.cameraOpenError
       );
     }
   }
@@ -123,8 +144,8 @@ export default function ParkingScanner({
       console.log('Gallery error:', err);
 
       Alert.alert(
-        'Gallery Error',
-        'Unable to open your photo library.'
+        t.galleryError,
+        t.galleryOpenError
       );
     }
   }
@@ -153,22 +174,34 @@ export default function ParkingScanner({
       console.log('File type:', imageFile.type);
       console.log('File size:', imageFile.size);
       console.log('File exists:', imageFile.exists);
-      console.log('API URL:', API_URL);
+      console.log('API URL:', `${API_BASE_URL}${mode === 'campus' ? '/analyze-campus' : '/analyze'}`);
       console.log('------------------------------');
 
       if (!imageFile.exists || imageFile.size === 0) {
         throw new Error(
-          'The selected image file is missing or empty.'
+          t.missingImage
         );
       }
 
       const formData = new FormData();
       formData.append('file', imageFile);
 
+      // Read the user's saved language preference.
+      const savedLanguage = await AsyncStorage.getItem('@parkscan/preferred-language');
+      const language = savedLanguage === 'es' ? 'es' : 'en';
+
+      // Send the language to the FastAPI backend.
+      formData.append('language', language);
+
+      console.log('Selected analysis language:', language);
+
       console.log('Uploading JPEG to FastAPI...');
 
       // Expo fetch supports ExpoFile uploads.
-      const response = await expoFetch(API_URL, {
+      const endpoint =
+        mode === 'campus' ? '/analyze-campus' : '/analyze';
+
+      const response = await expoFetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         body: formData,
       });
@@ -181,15 +214,13 @@ export default function ParkingScanner({
 
       if (!response.ok) {
         throw new Error(
-          result.detail ||
-            'The server could not analyze the photo.'
+          result.detail || t.serverError
         );
       }
 
       if (!result.success) {
         setError(
-          result.message ||
-            'No readable parking signs were detected.'
+          result.message || t.noSigns
         );
         return;
       }
@@ -198,13 +229,32 @@ export default function ParkingScanner({
       console.log('Detected signs:', result.sign_count);
 
       setAnalysis(result);
+
+      try {
+        await saveScan({
+          mode,
+          signCount: result.sign_count,
+          ocrText: result.ocr_text,
+          explanation: result.explanation,
+          warning: result.warning,
+        });
+
+        console.log('Scan saved to history successfully.');
+      } catch (historyError) {
+        console.log('Unable to save scan history:', historyError);
+
+        Alert.alert(
+          t.historyNotSaved,
+          t.historySaveError
+        );
+      }
     } catch (err) {
       console.log('Analysis error:', err);
 
       setError(
         err instanceof Error
           ? err.message
-          : 'Unable to connect to the backend.'
+          : t.connectionError
       );
     } finally {
       setLoading(false);
@@ -214,8 +264,8 @@ export default function ParkingScanner({
   function handleBack() {
     if (loading) {
       Alert.alert(
-        'Analysis in Progress',
-        'Please wait until the analysis finishes.'
+        t.analysisInProgress,
+        t.waitForAnalysis
       );
       return;
     }
@@ -226,15 +276,15 @@ export default function ParkingScanner({
     }
 
     Alert.alert(
-      'Leave Parking Scanner?',
-      'Your selected photo and analysis will be cleared.',
+      t.leaveScanner,
+      t.leaveWarning,
       [
         {
-          text: 'Cancel',
+          text: t.cancel,
           style: 'cancel',
         },
         {
-          text: 'Leave',
+          text: t.leave,
           style: 'destructive',
           onPress: onBack,
         },
@@ -255,19 +305,20 @@ export default function ParkingScanner({
           style={styles.backButton}
         >
           <Text style={styles.backText}>
-            ← Back to Home
+            ← {t.backToHome}
           </Text>
         </Pressable>
 
         <Text style={styles.label}>PARKSCAN</Text>
 
         <Text style={styles.title}>
-          Parking Sign Scanner
+          {mode === 'campus' ? t.campusScanner : t.parkingScanner}
         </Text>
 
         <Text style={styles.subtitle}>
-          Capture a parking sign to understand its rules
-          and restrictions.
+          {mode === 'campus'
+            ? t.campusSubtitle
+            : t.parkingSubtitle}
         </Text>
 
         {!photo ? (
@@ -275,17 +326,17 @@ export default function ParkingScanner({
             <Text style={styles.cameraIcon}>📷</Text>
 
             <Text style={styles.emptyTitle}>
-              Ready to Scan
+              {t.readyToScan}
             </Text>
 
             <Text style={styles.subtitle}>
-              Take a photo or choose one from your gallery.
+              {t.photoPrompt}
             </Text>
           </View>
         ) : (
           <View style={styles.reviewSection}>
             <Text style={styles.sectionTitle}>
-              Image Review
+              {t.imageReview}
             </Text>
 
             <View style={styles.photoCard}>
@@ -299,7 +350,7 @@ export default function ParkingScanner({
                 />
 
                 <Text style={styles.previewHint}>
-                  Tap image to enlarge
+                  {t.tapToEnlarge}
                 </Text>
               </Pressable>
 
@@ -309,7 +360,7 @@ export default function ParkingScanner({
                   onPress={removePhoto}
                 >
                   <Text style={styles.removeText}>
-                    ✕ Remove Photo
+                    ✕ {t.removePhoto}
                   </Text>
                 </Pressable>
               )}
@@ -324,7 +375,7 @@ export default function ParkingScanner({
               onPress={takePhoto}
             >
               <Text style={styles.primaryButtonText}>
-                📷 Take Photo
+                📷 {t.takePhoto}
               </Text>
             </Pressable>
 
@@ -333,7 +384,7 @@ export default function ParkingScanner({
               onPress={uploadPhoto}
             >
               <Text style={styles.secondaryButtonText}>
-                🖼️ Upload from Gallery
+                🖼️ {t.uploadGallery}
               </Text>
             </Pressable>
           </>
@@ -346,8 +397,10 @@ export default function ParkingScanner({
           >
             <Text style={styles.primaryButtonText}>
               {analysis
-                ? 'Analyze Again ↻'
-                : 'Analyze Parking Sign →'}
+                ? `${t.analyzeAgain} ↻`
+                : mode === 'campus'
+                  ? `${t.analyzeCampus} →`
+                  : `${t.analyzeParking} →`}
             </Text>
           </Pressable>
         )}
@@ -360,12 +413,15 @@ export default function ParkingScanner({
             />
 
             <Text style={styles.loadingTitle}>
-              Analyzing Parking Signs...
+              {mode === 'campus'
+                ? t.analyzingCampus
+                : t.analyzingParking}
             </Text>
 
             <Text style={styles.subtitle}>
-              Detecting signs, reading text, and generating
-              an AI explanation.
+              {mode === 'campus'
+                ? t.readingCampus
+                : t.readingParking}
             </Text>
           </View>
         )}
@@ -373,7 +429,7 @@ export default function ParkingScanner({
         {error && (
           <View style={styles.errorCard}>
             <Text style={styles.errorTitle}>
-              Analysis Failed
+              {t.analysisFailed}
             </Text>
 
             <Text style={styles.errorText}>
@@ -381,8 +437,7 @@ export default function ParkingScanner({
             </Text>
 
             <Text style={styles.errorHint}>
-              Check the Expo terminal for image-upload
-              diagnostic information.
+              {t.errorHint}
             </Text>
           </View>
         )}
@@ -390,12 +445,12 @@ export default function ParkingScanner({
         {analysis && (
           <View style={styles.resultsSection}>
             <Text style={styles.sectionTitle}>
-              Analysis Results
+              {t.analysisResults}
             </Text>
 
             <View style={styles.resultCard}>
               <Text style={styles.resultLabel}>
-                DETECTED SIGNS
+                {t.detectedSigns}
               </Text>
 
               <Text style={styles.signCount}>
@@ -405,18 +460,44 @@ export default function ParkingScanner({
 
             <View style={styles.resultCard}>
               <Text style={styles.resultLabel}>
-                AI EXPLANATION
+                {t.aiExplanation}
               </Text>
 
-              <Text style={styles.resultText}>
-                {analysis.explanation ||
-                  'No explanation returned.'}
-              </Text>
+              <Markdown
+                style={{
+                  body: {
+                    color: '#FFFFFF',
+                    fontSize: 16,
+                    lineHeight: 26,
+                  },
+                  heading1: {
+                    color: '#FFFFFF',
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                  },
+                  heading2: {
+                    color: '#FFFFFF',
+                    fontSize: 19,
+                    fontWeight: 'bold',
+                  },
+                  strong: {
+                    fontWeight: 'bold',
+                  },
+                  bullet_list: {
+                    marginVertical: 6,
+                  },
+                  paragraph: {
+                    marginVertical: 8,
+                  },
+                }}
+              >
+                {analysis.explanation || t.noExplanation}
+              </Markdown>
             </View>
 
             <View style={styles.resultCard}>
               <Text style={styles.resultLabel}>
-                EXTRACTED TEXT (OCR)
+                {t.extractedText}
               </Text>
 
               <Text style={styles.ocrText}>
@@ -427,13 +508,13 @@ export default function ParkingScanner({
             <View style={styles.warningCard}>
               <Text style={styles.warningText}>
                 ⚠️{' '}
-                {analysis.warning ||
-                  'Always check the physical parking signs before parking.'}
+                {language === 'es'
+                  ? 'Las explicaciones de IA son solo orientativas. Verifica siempre las señales físicas de estacionamiento.'
+                  : analysis.warning || t.checkPhysicalSigns}
               </Text>
 
               <Text style={styles.warningText}>
-                Directional arrows and parking symbols may
-                not be recognized.
+                {t.arrowWarning}
               </Text>
             </View>
           </View>
@@ -460,7 +541,7 @@ export default function ParkingScanner({
             onPress={() => setPreviewPhoto(null)}
           >
             <Text style={styles.primaryButtonText}>
-              Close ✕
+              {t.close} ✕
             </Text>
           </Pressable>
         </View>

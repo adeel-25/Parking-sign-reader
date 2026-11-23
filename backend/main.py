@@ -5,7 +5,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from google import genai
 from paddleocr import PaddleOCR
 from ultralytics import YOLO
@@ -39,7 +39,10 @@ def home():
 
 
 @app.post("/analyze")
-async def analyze_parking_sign(file: UploadFile = File(...)):
+async def analyze_parking_sign(
+    file: UploadFile = File(...),
+    language: str = Form("en")
+):
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Please upload an image.")
 
@@ -105,9 +108,12 @@ async def analyze_parking_sign(file: UploadFile = File(...)):
 
         # Existing Gemini prompt
         prompt = f"""
+Respond in {"Spanish" if language == "es" else "English"}.
+Translate the explanation only. Preserve all original sign text,
+numbers, days, times, and restrictions accurately.
+
 The following text was extracted from one or more parking signs
 using YOLO object detection and PaddleOCR.
-
 Each numbered sign represents a separate detected sign.
 
 {ocr_text}
@@ -149,4 +155,116 @@ If OCR text is unclear or incomplete, say so.
         raise HTTPException(
             status_code=500,
             detail="Unable to analyze the parking sign."
+        )
+
+
+@app.post("/analyze-campus")
+async def analyze_campus_sign(
+    file: UploadFile = File(...),
+    language: str = Form("en")
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload an image."
+        )
+
+    try:
+        image_bytes = await file.read()
+
+        if not image_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail="Image is empty."
+            )
+
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+
+        if image is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid image file."
+            )
+
+        # Campus signs use OCR on the full image.
+        # The parking-specific YOLO model is not used.
+        ocr_results = ocr.predict(image)
+        extracted_lines = []
+
+        for ocr_result in ocr_results:
+            extracted_lines.extend(ocr_result["rec_texts"])
+
+        extracted_lines = [
+            str(line).strip()
+            for line in extracted_lines
+            if str(line).strip()
+        ]
+
+        if not extracted_lines:
+            return {
+                "success": False,
+                "message": "No readable campus sign text detected.",
+                "ocr_text": "",
+                "explanation": "",
+                "sign_count": 0
+            }
+
+        ocr_text = "\n".join(extracted_lines)
+
+        prompt = f"""
+Respond in {"Spanish" if language == "es" else "English"}.
+Translate the explanation only. Preserve original room numbers,
+building names, locations, and other sign details accurately.
+
+The following text was extracted from a campus room
+or building sign using OCR:
+
+{ocr_text}
+
+Explain the campus sign in clear, simple language.
+
+Instructions:
+- Identify room numbers, building names, locations,
+  directions, opening hours, and restrictions if present.
+- Explain what the sign tells students or visitors.
+- Preserve exact numbers, times, and instructions.
+- Do not invent missing information.
+- Do not assume directions or locations not shown.
+- If text is incomplete or unclear, say so.
+- Keep the explanation concise and use plain text.
+"""
+
+        response = client.models.generate_content(
+            model="gemini-3.1-flash-lite",
+            contents=prompt,
+        )
+
+        explanation = (response.text or "").strip()
+
+        if not explanation:
+            raise HTTPException(
+                status_code=502,
+                detail="AI did not return an explanation."
+            )
+
+        return {
+            "success": True,
+            "ocr_text": ocr_text,
+            "explanation": explanation,
+            "sign_count": 1,
+            "warning": (
+                "AI explanations are for guidance only. "
+                "Always check the physical campus sign."
+            )
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        print(f"Campus analysis error: {error}")
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to analyze the campus sign."
         )

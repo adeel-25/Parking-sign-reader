@@ -53,3 +53,13 @@ frontend.zip
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Local Python environment
+.venv311/
+
+# Expo upgrade backup
+expo-upgrade-backup/
+
+# Generated frontend test files
+frontend/test-bundle.js
+frontend/test-assets/
