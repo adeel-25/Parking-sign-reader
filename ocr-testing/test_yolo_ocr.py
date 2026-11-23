@@ -4,7 +4,7 @@ from ultralytics import YOLO
 import easyocr
 
 # Load our trained parking-sign detector
-model = YOLO("../runs/detect/train-4/weights/best.pt")
+model = YOLO("parking_sign_v9_best.pt")
 
 # Load EasyOCR
 reader = easyocr.Reader(["en"], gpu=False)
