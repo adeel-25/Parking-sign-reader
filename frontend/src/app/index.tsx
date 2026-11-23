@@ -1,6 +1,11 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ParkingScanner from '@/components/parking-scanner';
+import { Ionicons } from '@expo/vector-icons';
+import ScanHistoryScreen from '@/components/scan-history-screen';
+import SettingsScreen from '@/components/settings-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { translations, type LanguageCode } from '@/i18n/translations';
 import {
   Alert,
   Pressable,
@@ -22,7 +27,24 @@ const COLORS = {
 };
 
 export default function HomeScreen() {
-  const [showParkingScanner, setShowParkingScanner] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'parking' | 'campus' | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [language, setLanguage] = useState<LanguageCode>('en');
+  const t = translations[language];
+
+  useEffect(() => {
+    async function loadLanguage() {
+      try {
+        const saved = await AsyncStorage.getItem('@parkscan/preferred-language');
+        setLanguage(saved === 'es' ? 'es' : 'en');
+      } catch (error) {
+        console.error('Unable to load language preference:', error);
+      }
+    }
+
+    loadLanguage();
+  }, [showSettings]);
 
   function comingSoon(feature: string) {
     Alert.alert(
@@ -31,10 +53,27 @@ export default function HomeScreen() {
     );
   }
 
-  if (showParkingScanner) {
+  if (showSettings) {
+    return (
+      <SettingsScreen
+        onBack={() => setShowSettings(false)}
+      />
+    );
+  }
+
+  if (showHistory) {
+    return (
+      <ScanHistoryScreen
+        onBack={() => setShowHistory(false)}
+      />
+    );
+  }
+
+  if (scannerMode !== null) {
     return (
       <ParkingScanner
-        onBack={() => setShowParkingScanner(false)}
+        mode={scannerMode}
+        onBack={() => setScannerMode(null)}
       />
     );
   }
@@ -52,7 +91,7 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <View>
               <Text style={styles.welcomeText}>
-                WELCOME TO
+                {t.welcomeTo}
               </Text>
 
               <Text style={styles.appName}>
@@ -63,29 +102,31 @@ export default function HomeScreen() {
               </Text>
 
               <Text style={styles.tagline}>
-                Your AI-powered scanning assistant
+                {t.tagline}
               </Text>
             </View>
 
             <View style={styles.headerIcon}>
-              <Text style={styles.headerIconText}>
-                Γîù
-              </Text>
+              <Ionicons
+                name="scan-outline"
+                size={34}
+                color={COLORS.cyan}
+              />
             </View>
           </View>
 
           {/* Introduction */}
           <View style={styles.introCard}>
             <Text style={styles.sectionLabel}>
-              SMART SCANNING
+              {t.smartScanning}
             </Text>
 
             <Text style={styles.introTitle}>
-              What would you like to scan?
+              {t.scanQuestion}
             </Text>
 
             <Text style={styles.introDescription}>
-              Choose a feature to get started.
+              {t.chooseFeature}
             </Text>
           </View>
 
@@ -96,25 +137,30 @@ export default function HomeScreen() {
                 styles.scanCard,
                 pressed && styles.pressed,
               ]}
-              onPress={() => setShowParkingScanner(true)}
+              onPress={() => setScannerMode('parking')}
             >
               <View style={styles.scanIconContainer}>
-                <Text style={styles.scanIcon}>
-                  ≡ƒÜù
-                </Text>
+                <Ionicons
+                  name="car-outline"
+                  size={29}
+                  color={COLORS.cyan}
+                />
               </View>
 
               <Text style={styles.scanTitle}>
-                Parking Signs
+                {t.parkingScanner}
               </Text>
 
               <Text style={styles.scanDescription}>
-                Scan signs and understand parking rules.
+                {t.parkingDescription}
               </Text>
 
-              <Text style={styles.scanArrow}>
-                ΓåÆ
-              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={25}
+                color={COLORS.cyan}
+                style={{ marginTop: 10, alignSelf: 'flex-end' }}
+              />
             </Pressable>
 
             <Pressable
@@ -122,33 +168,36 @@ export default function HomeScreen() {
                 styles.scanCard,
                 pressed && styles.pressed,
               ]}
-              onPress={() =>
-                comingSoon('Scan Campus Room')
-              }
+              onPress={() => setScannerMode('campus')}
             >
               <View style={styles.scanIconContainer}>
-                <Text style={styles.scanIcon}>
-                  ≡ƒÅ½
-                </Text>
+                <Ionicons
+                  name="school-outline"
+                  size={29}
+                  color={COLORS.cyan}
+                />
               </View>
 
               <Text style={styles.scanTitle}>
-                Campus Rooms
+                {t.campusTitle}
               </Text>
 
               <Text style={styles.scanDescription}>
-                Find campus room information.
+                {t.campusDescription}
               </Text>
 
-              <Text style={styles.scanArrow}>
-                ΓåÆ
-              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={25}
+                color={COLORS.cyan}
+                style={{ marginTop: 10, alignSelf: 'flex-end' }}
+              />
             </Pressable>
           </View>
 
           {/* Quick Access */}
           <Text style={styles.quickAccessHeading}>
-            Quick Access
+            {t.quickAccess}
           </Text>
 
           <Pressable
@@ -156,28 +205,31 @@ export default function HomeScreen() {
               styles.quickCard,
               pressed && styles.pressed,
             ]}
-            onPress={() =>
-              comingSoon('Scan History')
-            }
+            onPress={() => setShowHistory(true)}
           >
             <View style={styles.quickIcon}>
-              <Text style={styles.quickEmoji}>
-                ≡ƒòÿ
-              </Text>
+              <Ionicons
+                name="time-outline"
+                size={25}
+                color={COLORS.cyan}
+              />
             </View>
 
             <View style={styles.quickTextContainer}>
               <Text style={styles.quickTitle}>
-                Scan History
+                {t.scanHistory}
               </Text>
               <Text style={styles.quickDescription}>
-                View your previous scans
+                {t.historyDescription}
               </Text>
             </View>
 
-            <Text style={styles.quickArrow}>
-              ΓÇ║
-            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={28}
+              color={COLORS.cyan}
+              style={{ marginLeft: 10 }}
+            />
           </Pressable>
 
           <Pressable
@@ -185,28 +237,31 @@ export default function HomeScreen() {
               styles.quickCard,
               pressed && styles.pressed,
             ]}
-            onPress={() =>
-              comingSoon('Settings')
-            }
+            onPress={() => setShowSettings(true)}
           >
             <View style={styles.quickIcon}>
-              <Text style={styles.quickEmoji}>
-                ΓÜÖ∩╕Å
-              </Text>
+              <Ionicons
+                name="settings-outline"
+                size={25}
+                color={COLORS.cyan}
+              />
             </View>
 
             <View style={styles.quickTextContainer}>
               <Text style={styles.quickTitle}>
-                Settings
+                {t.settings}
               </Text>
               <Text style={styles.quickDescription}>
-                Language and accessibility preferences
+                {t.settingsDescription}
               </Text>
             </View>
 
-            <Text style={styles.quickArrow}>
-              ΓÇ║
-            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={28}
+              color={COLORS.cyan}
+              style={{ marginLeft: 10 }}
+            />
           </Pressable>
 
           {/* Footer */}
@@ -215,7 +270,7 @@ export default function HomeScreen() {
               ParkScan
             </Text>
             <Text style={styles.footerSubtext}>
-              Making parking and campus navigation easier
+              {t.footerTagline}
             </Text>
           </View>
         </ScrollView>
