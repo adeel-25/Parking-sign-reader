@@ -15,6 +15,7 @@ runs/
 # YOLO model weights
 *.pt
 !ocr-testing/parking_sign_v6_best.pt
+!ocr-testing/parking_sign_v9_best.pt
 
 # Local/raw dataset images
 ocr-testing/parking-sign-dataset/

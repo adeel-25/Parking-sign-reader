@@ -1,0 +1,13 @@
+fastapi==0.162.0
+uvicorn==0.54.0
+python-multipart==0.0.33
+python-dotenv==1.2.4
+google-genai==3.3.0
+numpy==2.3.5
+opencv-python==5.0.0.93
+paddlepaddle==3.3.1
+paddleocr==3.7.0
+paddlex==3.7.2
+ultralytics==8.4.214
+torch==2.15.0
+torchvision==0.29.2
