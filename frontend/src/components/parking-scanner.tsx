@@ -22,7 +22,7 @@ import { fetch as expoFetch } from 'expo/fetch';
 import Markdown from 'react-native-markdown-display';
 import { translations, type LanguageCode } from '@/i18n/translations';
 
-const API_BASE_URL = 'http://192.168.1.202:8000';
+const API_BASE_URL = 'http://172.20.10.2:8000';
 
 type ParkingScannerProps = {
   onBack: () => void;
