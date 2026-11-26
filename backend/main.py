@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 import cv2
@@ -30,7 +31,13 @@ client = genai.Client(api_key=API_KEY)
 # Updated YOLO26 v9 model
 model = YOLO(str(OCR_FOLDER / "parking_sign_v9_best.pt"))
 
-ocr = PaddleOCR(lang="en", enable_mkldnn=False)
+ocr = PaddleOCR(
+    lang="en",
+    enable_mkldnn=True,
+    use_doc_orientation_classify=False,
+    use_doc_unwarping=False,
+    use_textline_orientation=False,
+)
 
 ARROW_CLASSES = ["arrow_left", "arrow_right", "arrow_both"]
 
@@ -64,7 +71,11 @@ async def analyze_parking_sign(
         height, width = image.shape[:2]
 
         # Detect parking sign panels, arrows, and symbols
+        print(f"Image size: {width}x{height}")
+
+        yolo_start = time.perf_counter()
         results = model(image, conf=0.25)
+        yolo_time = time.perf_counter() - yolo_start
 
         panels = []
         arrows = []
@@ -113,6 +124,7 @@ async def analyze_parking_sign(
 
         all_signs = []
         sign_number = 0
+        ocr_time = 0.0
 
         for panel in panels:
 
@@ -126,7 +138,9 @@ async def analyze_parking_sign(
             sign_number += 1
 
             # Extract text from the parking sign panel
+            ocr_start = time.perf_counter()
             ocr_results = ocr.predict(sign_crop)
+            ocr_time += time.perf_counter() - ocr_start
             sign_text = []
 
             for ocr_result in ocr_results:
@@ -270,9 +284,17 @@ Important rules:
   only on this analysis.
 """
 
+        gemini_start = time.perf_counter()
         response = client.models.generate_content(
             model="gemini-3.1-flash-lite",
             contents=prompt,
+        )
+        gemini_time = time.perf_counter() - gemini_start
+
+        print(
+            f"Timing | YOLO: {yolo_time:.2f}s | "
+            f"OCR ({sign_number} panels): {ocr_time:.2f}s | "
+            f"Gemini: {gemini_time:.2f}s"
         )
 
         explanation = (response.text or "").strip()
